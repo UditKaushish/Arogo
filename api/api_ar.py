@@ -157,8 +157,6 @@ def query():
     data = request.get_json()
     user_query = data.get("query", "")
     
-    if user_query=="What are the symptoms of a heart attack?":
-        return {"answer":"Myocardial infarction (heart attack) symptoms include chest pain, nausea, and shortness of breath."}
     if not user_query:
         return jsonify({"error": "No query provided!"}), 400
 
