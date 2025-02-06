@@ -1,7 +1,5 @@
 import json
-import os
 import nltk
-from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from flask import Flask, request, jsonify
 from flask_cors import CORS  # Import CORS to handle frontend requests
@@ -22,7 +20,6 @@ CORS(app)  # Enable CORS to allow cross-origin requests
 nltk.download("wordnet")
 nltk.download("omw-1.4")
 nltk.download("punkt")
-nltk.download('punkt_tab')
 
 # Load NLP tools
 lemmatizer = WordNetLemmatizer()
@@ -153,32 +150,39 @@ def generate_answer(query):
 @app.route("/query", methods=["POST"])  # Changed to POST
 def query():
     """Handles API query requests."""
-    # Get the query from the POST body (JSON)
-    data = request.get_json()
-    user_query = data.get("query", "")
-    
-    if not user_query:
-        return jsonify({"error": "No query provided!"}), 400
+    try:
+        # Get the query from the POST body (JSON)
+        data = request.get_json()
+        user_query = data.get("query", "")
 
-    expanded_q = expand_query(user_query)
-    
-    # Retrieve documents
-    bm25_results = bm25_search(expanded_q)
-    semantic_results = semantic_search(expanded_q)
-    
-    # Combine results & rerank
-    top_results = bm25_results + semantic_results
-    reranked_results = rerank_results(expanded_q, top_results)
-    
-    # Generate final answer
-    answer = generate_answer(user_query)
+        if not user_query:
+            return jsonify({"error": "No query provided!"}), 400
 
-    return jsonify({
-        # "query": user_query,
-        # "expanded_query": expanded_q,
-        # "top_results": reranked_results,
-        "answer": answer
-    })
+        expanded_q = expand_query(user_query)
+
+        # Retrieve documents
+        bm25_results = bm25_search(expanded_q)
+        semantic_results = semantic_search(expanded_q)
+
+        # Combine results & rerank
+        top_results = bm25_results + semantic_results
+        reranked_results = rerank_results(expanded_q, top_results)
+
+        # Generate final answer
+        answer = generate_answer(user_query)
+
+        # Optional: Include more detailed information for debugging or transparency
+        return jsonify({
+            "query": user_query,
+            "expanded_query": expanded_q,
+            "top_results": reranked_results,
+            "answer": answer
+        })
+
+    except Exception as e:
+        # Log the error if something goes wrong
+        print(f"Error processing query: {e}")
+        return jsonify({"error": "An error occurred while processing the query."}), 500
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
